@@ -12,7 +12,7 @@ Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查�
 import json
 from typing import List, Dict, Any
 from aiohttp import web
-from ..utils.globals import LLM_DEFAULT_BASE_URL, LMSTUDIO_DEFAULT_BASE_URL, OPENAI_API_KEY, OPENAI_BASE_URL, TENANT_ID, is_lmstudio_url
+from ..utils.globals import LLM_DEFAULT_BASE_URL, LMSTUDIO_DEFAULT_BASE_URL, OPENAI_API_KEY, OPENAI_BASE_URL, TENANT_ID, is_lmstudio_url, is_anthropic_url, ANTHROPIC_API_VERSION
 import server
 import requests
 from ..utils.logger import log
@@ -59,6 +59,10 @@ async def list_models(request):
         if not is_lmstudio or (is_lmstudio and openai_api_key):
             # Include Authorization header for OpenAI API or LMStudio with API key
             headers["Authorization"] = f"Bearer {openai_api_key}"
+        if is_anthropic_url(openai_base_url):
+            # Anthropic's /models is native, not part of its OpenAI-compat
+            # layer, and 400s without this header even with a valid key.
+            headers["anthropic-version"] = ANTHROPIC_API_VERSION
         
         response = requests.get(request_url, headers=headers)
         llm_config = []
@@ -112,6 +116,10 @@ async def verify_openai_key(req):
         if not is_lmstudio or (is_lmstudio and openai_api_key):
             # Include Authorization header for OpenAI API or LMStudio with API key
             headers["Authorization"] = f"Bearer {openai_api_key}"
+        if is_anthropic_url(openai_base_url):
+            # Anthropic's /models is native, not part of its OpenAI-compat
+            # layer, and 400s without this header even with a valid key.
+            headers["anthropic-version"] = ANTHROPIC_API_VERSION
         
         # Make a simple GET request to the models endpoint
         response = requests.get(f"{openai_base_url}/models", headers=headers)

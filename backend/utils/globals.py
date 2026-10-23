@@ -163,3 +163,18 @@ def is_lmstudio_url(base_url: str) -> bool:
     ]
 
     return any(pattern in base_url_lower for pattern in lmstudio_patterns)
+
+
+ANTHROPIC_API_VERSION = "2023-06-01"
+
+
+def is_anthropic_url(base_url: str) -> bool:
+    """Check if the base URL points at Anthropic's native API.
+
+    Anthropic's OpenAI-compatibility layer only covers /chat/completions;
+    its GET /models endpoint is native and requires the anthropic-version
+    header on every request (missing it is a 400, not a 404/401).
+    """
+    if not base_url:
+        return False
+    return "api.anthropic.com" in base_url.lower()
