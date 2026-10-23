@@ -256,13 +256,11 @@ export namespace WorkflowChatAPI {
         'Accept-Language': browserLanguage,
       };
       
-      // Add OpenAI configuration headers if available
-      if (openaiApiKey && openaiApiKey.trim() !== '' && rsaPublicKey) {
-        try {
-          headers['Openai-Base-Url'] = openaiBaseUrl;
-        } catch (error) {
-          console.error('Error encrypting OpenAI API key:', error);
-        }
+      // Add OpenAI configuration headers if available.
+      // The base URL must not depend on the RSA key: the local backend reads it
+      // as a plain header, and /api/chat/rsa_public_key does not exist locally.
+      if (openaiApiKey && openaiApiKey.trim() !== '') {
+        headers['Openai-Base-Url'] = openaiBaseUrl;
       }
       // Add Workflow LLM headers if available
       if (workflowLLMBaseUrl) {
@@ -287,12 +285,14 @@ export namespace WorkflowChatAPI {
         });
       }
 
+      // Both branches resolve to the same origin now; the key must be sent
+      // either way (intent requests used to omit it and fall back to the
+      // suspended default endpoint).
       let chatUrl = `/api/chat/invoke`
       if(intent && intent !== '') {
         chatUrl = `${BASE_URL}/api/chat/invoke`
-      } else {
-        headers['Openai-Api-Key'] = openaiApiKey;
       }
+      headers['Openai-Api-Key'] = openaiApiKey;
       const response = await fetch(chatUrl, {
         method: 'POST',
         headers: headers,

@@ -145,12 +145,11 @@ export function ApiKeyModal({ isOpen, onClose, onSave, initialApiKey = '', onCon
             return;
         }
         
-        if (!rsaPublicKey && !isLMStudio) {
-            setVerificationResult({
-                success: false,
-                message: 'RSA public key not available. Please try again later.'
-            });
-            return;
+        // The RSA key only exists for the hosted service's encrypted-key path.
+        // The local backend reads Openai-Api-Key / Openai-Base-Url in plaintext,
+        // so a missing public key must not block verification.
+        if (!rsaPublicKey) {
+            console.warn('RSA public key unavailable; verifying with plaintext headers');
         }
         
         setVerifyingKey(true);
