@@ -12,6 +12,7 @@ from .. import core
 import asyncio
 import os
 import traceback
+from contextlib import AsyncExitStack
 from typing import List, Dict, Any, Optional
 
 try:
@@ -138,9 +139,25 @@ async def comfyui_agent_invoke(messages: List[Dict[str, Any]], images: List[Imag
             client_session_timeout_seconds=300.0
         )
         
-        server_list = [mcp_server, bing_server]
-        
-        async with mcp_server, bing_server:
+        # Connect each MCP server independently -- one dead dependency
+        # (e.g. the ComfyUI-Copilot hosted backend) must not take down the
+        # whole chat turn. Tools from a server that fails to connect are
+        # simply unavailable for this turn instead of raising.
+        server_list = []
+
+        async with AsyncExitStack() as mcp_stack:
+            for mcp_srv, label in (
+                (mcp_server, "ComfyUI-Copilot backend"),
+                (bing_server, "web-search"),
+            ):
+                try:
+                    await mcp_stack.enter_async_context(mcp_srv)
+                    server_list.append(mcp_srv)
+                except Exception as e:
+                    log.warning(
+                        f"[MCP] {label} MCP server unavailable, continuing "
+                        f"without its tools: {e}"
+                    )
             
             # 创建workflow_rewrite_agent实例 (session_id通过context获取)
             workflow_rewrite_agent_instance = create_workflow_rewrite_agent()
