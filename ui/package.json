@@ -58,7 +58,7 @@
     "rollup-plugin-watch": "^1.0.4",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.2.2",
-    "vite": "^5.4.14"
+    "vite": "^8.3.5"
   },
   "overrides": {
     "cross-spawn": ">=7.0.5",
